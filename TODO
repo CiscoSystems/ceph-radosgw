@@ -1,5 +1,4 @@
 RADOS Gateway Charm
 -------------------
 
- * cephx support
  * Improved process control of radosgw daemon (to many restarts)

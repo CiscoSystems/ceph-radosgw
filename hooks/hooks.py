@@ -12,6 +12,7 @@ import subprocess
 import sys
 import glob
 import os
+import ceph
 
 import utils
 
@@ -99,7 +100,10 @@ def get_mon_hosts():
 def mon_relation():
     utils.juju_log('INFO', 'Begin mon-relation hook.')
     emit_cephconf()
-    restart()
+    key = utils.relation_get('radosgw_key')
+    if key != "":
+        ceph.import_radosgw_key(key)
+        restart()  # TODO figure out a better way todo this
     utils.juju_log('INFO', 'End mon-relation hook.')
 
 
@@ -116,14 +120,18 @@ def upgrade_charm():
 
 
 def start():
-    # In case we're being redeployed to the same machines, try
-    # to make sure everything is running as soon as possible.
+    subprocess.call(['service', 'radosgw', 'start'])
+    utils.expose(port=80)
+
+
+def stop():
     subprocess.call(['service', 'radosgw', 'start'])
     utils.expose(port=80)
 
 
 def restart():
     subprocess.call(['service', 'radosgw', 'restart'])
+    utils.expose(port=80)
 
 
 utils.do_hooks({
@@ -132,7 +140,6 @@ utils.do_hooks({
         'mon-relation-departed': mon_relation,
         'mon-relation-changed': mon_relation,
         'gateway-relation-joined': gateway_relation,
-        'start': start,
         'upgrade-charm': config_changed,  # same function ATM
         })
 

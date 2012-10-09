@@ -30,9 +30,13 @@ The gateway can be accessed over port 80 (as show in juju status exposed
 ports).
 
 Note that you will need to login to one of the service units supporting the
-ceph-radosgw charm to generate some access credentials::
+ceph charm to generate some access credentials::
 
-   radosgw-admin user create --uid="ubuntu" --display-name="Ubuntu Ceph"
+   juju ssh ceph/0 \
+      'sudo radosgw-admin user create --uid="ubuntu" --display-name="Ubuntu Ceph"'
+   
+For security reasons the ceph-radosgw charm is not setup with appropriate
+permissions to administer the ceph cluster.
 
 Scale-out
 =========
