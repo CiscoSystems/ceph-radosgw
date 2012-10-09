@@ -1,7 +1,6 @@
 options:
   source:
     type: string
-    default: ppa:ceph-ubuntu/dev
     description: |
       Optional configuration to support use of additional sources such as:
       .
