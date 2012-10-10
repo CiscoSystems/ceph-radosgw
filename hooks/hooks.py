@@ -28,7 +28,8 @@ def install():
     utils.configure_source()
     utils.install('radosgw',
                   'libapache2-mod-fastcgi',
-                  'apache2')
+                  'apache2',
+                  'ntp')
     utils.juju_log('INFO', 'End install hook.')
 
 

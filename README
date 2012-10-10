@@ -52,6 +52,13 @@ and then stick a HA loadbalancer on the front::
 
 Should give you a bit more bang on the front end if you really need it.
 
+Contact Information
+===================
+
+Author: James Page <james.page@ubuntu.com>
+Report bugs at: http://bugs.launchpad.net/charms/+source/ceph-radosgw/+filebug
+Location: http://jujucharms.com/charms/ceph-radosgw
+
 Bootnotes
 =========
 
