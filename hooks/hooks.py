@@ -39,6 +39,7 @@ def emit_cephconf():
         os.makedirs('/etc/ceph')
 
     cephcontext = {
+        'auth_supported': get_auth() or 'none',
         'mon_hosts': ' '.join(get_mon_hosts()),
         'hostname': utils.get_unit_hostname()
         }
@@ -96,6 +97,20 @@ def get_mon_hosts():
 
     hosts.sort()
     return hosts
+
+
+def get_auth():
+    return get_conf('auth')
+
+
+def get_conf(name):
+    for relid in utils.relation_ids('mon'):
+        for unit in utils.relation_list(relid):
+            conf = utils.relation_get(name,
+                                      unit, relid)
+            if conf != "":
+                return conf
+    return None
 
 
 def mon_relation():
