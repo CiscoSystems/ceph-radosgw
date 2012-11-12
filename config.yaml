@@ -5,7 +5,7 @@ options:
       Optional configuration to support use of additional sources such as:
       .
         - ppa:myteam/ppa
-        - cloud:folsom-proposed
+        - cloud:precise-proposed/folsom
         - http://my.archive.com/ubuntu main
       .
       The last option should be used in conjunction with the key configuration
