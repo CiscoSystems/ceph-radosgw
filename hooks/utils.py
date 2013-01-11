@@ -18,10 +18,12 @@ def do_hooks(hooks):
     hook = os.path.basename(sys.argv[0])
 
     try:
-        hooks[hook]()
+        hook_func = hooks[hook]
     except KeyError:
         juju_log('INFO',
                  "This charm doesn't know how to handle '{}'.".format(hook))
+    else:
+        hook_func()
 
 
 def install(*pkgs):
@@ -101,7 +103,6 @@ def enable_pocket(pocket):
             else:
                 sources.write(line)
 
-
 # Protocols
 TCP = 'TCP'
 UDP = 'UDP'
@@ -150,15 +151,26 @@ def relation_get(attribute, unit=None, rid=None):
     cmd.append(attribute)
     if unit:
         cmd.append(unit)
-    return subprocess.check_output(cmd).strip()  # IGNORE:E1103
+    value = str(subprocess.check_output(cmd)).strip()
+    if value == "":
+        return None
+    else:
+        return value
 
 
 def relation_set(**kwargs):
     cmd = [
         'relation-set'
         ]
+    args = []
     for k, v in kwargs.items():
-        cmd.append('{}={}'.format(k, v))
+        if k == 'rid':
+            if v:
+                cmd.append('-r')
+                cmd.append(v)
+        else:
+            args.append('{}={}'.format(k, v))
+    cmd += args
     subprocess.check_call(cmd)
 
 
@@ -167,7 +179,11 @@ def unit_get(attribute):
         'unit-get',
         attribute
         ]
-    return subprocess.check_output(cmd).strip()  # IGNORE:E1103
+    value = str(subprocess.check_output(cmd)).strip()
+    if value == "":
+        return None
+    else:
+        return value
 
 
 def config_get(attribute):
@@ -175,7 +191,11 @@ def config_get(attribute):
         'config-get',
         attribute
         ]
-    return subprocess.check_output(cmd).strip()  # IGNORE:E1103
+    value = str(subprocess.check_output(cmd)).strip()
+    if value == "":
+        return None
+    else:
+        return value
 
 
 def get_unit_hostname():

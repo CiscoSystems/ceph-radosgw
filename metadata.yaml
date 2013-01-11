@@ -10,6 +10,8 @@ description: |
 requires:
   mon:
     interface: ceph-radosgw
+  identity-service:
+    interface: keystone
 provides:
   gateway:
     interface: http
