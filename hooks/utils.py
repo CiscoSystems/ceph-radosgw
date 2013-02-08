@@ -18,10 +18,12 @@ def do_hooks(hooks):
     hook = os.path.basename(sys.argv[0])
 
     try:
-        hooks[hook]()
+        hook_func = hooks[hook]
     except KeyError:
         juju_log('INFO',
                  "This charm doesn't know how to handle '{}'.".format(hook))
+    else:
+        hook_func()
 
 
 def install(*pkgs):
@@ -41,6 +43,12 @@ try:
 except ImportError:
     install('python-jinja2')
     import jinja2
+
+try:
+    import dns.resolver
+except ImportError:
+    install('python-dnspython')
+    import dns.resolver
 
 
 def render_template(template_name, context, template_dir=TEMPLATES_DIR):
@@ -101,7 +109,6 @@ def enable_pocket(pocket):
             else:
                 sources.write(line)
 
-
 # Protocols
 TCP = 'TCP'
 UDP = 'UDP'
@@ -150,15 +157,25 @@ def relation_get(attribute, unit=None, rid=None):
     cmd.append(attribute)
     if unit:
         cmd.append(unit)
-    return subprocess.check_output(cmd).strip()  # IGNORE:E1103
+    value = str(subprocess.check_output(cmd)).strip()
+    if value == "":
+        return None
+    else:
+        return value
 
 
 def relation_set(**kwargs):
     cmd = [
         'relation-set'
         ]
+    args = []
     for k, v in kwargs.items():
-        cmd.append('{}={}'.format(k, v))
+        if k == 'rid':
+            cmd.append('-r')
+            cmd.append(v)
+        else:
+            args.append('{}={}'.format(k, v))
+    cmd += args
     subprocess.check_call(cmd)
 
 
@@ -167,7 +184,11 @@ def unit_get(attribute):
         'unit-get',
         attribute
         ]
-    return subprocess.check_output(cmd).strip()  # IGNORE:E1103
+    value = str(subprocess.check_output(cmd)).strip()
+    if value == "":
+        return None
+    else:
+        return value
 
 
 def config_get(attribute):
@@ -175,7 +196,11 @@ def config_get(attribute):
         'config-get',
         attribute
         ]
-    return subprocess.check_output(cmd).strip()  # IGNORE:E1103
+    value = str(subprocess.check_output(cmd)).strip()
+    if value == "":
+        return None
+    else:
+        return value
 
 
 def get_unit_hostname():
@@ -183,9 +208,13 @@ def get_unit_hostname():
 
 
 def get_host_ip(hostname=unit_get('private-address')):
-    cmd = [
-        'dig',
-        '+short',
-        hostname
-        ]
-    return subprocess.check_output(cmd).strip()  # IGNORE:E1103
+    try:
+        # Test to see if already an IPv4 address
+        socket.inet_aton(hostname)
+        return hostname
+    except socket.error:
+        # This may throw an NXDOMAIN exception; in which case
+        # things are badly broken so just let it kill the hook
+        answers = dns.resolver.query(hostname, 'A')
+        if answers:
+            return answers[0].address

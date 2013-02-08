@@ -29,14 +29,30 @@ You can then directly access the RADOS gateway by exposing the service::
 The gateway can be accessed over port 80 (as show in juju status exposed
 ports).
 
+Access
+======
+
 Note that you will need to login to one of the service units supporting the
 ceph charm to generate some access credentials::
 
    juju ssh ceph/0 \
       'sudo radosgw-admin user create --uid="ubuntu" --display-name="Ubuntu Ceph"'
-   
+
 For security reasons the ceph-radosgw charm is not setup with appropriate
 permissions to administer the ceph cluster.
+
+Keystone Integration
+====================
+
+Ceph >= 0.55 integrates with Openstack Keystone for authentication of Swift requests.
+
+This is enabled by relating the ceph-radosgw service with keystone::
+
+   juju deploy keystone
+   juju add-relation keystone ceph-radosgw
+
+If you try to relate the radosgw to keystone with an earlier version of ceph the hook
+will error out to let you know.
 
 Scale-out
 =========
@@ -62,8 +78,7 @@ Location: http://jujucharms.com/charms/ceph-radosgw
 Bootnotes
 =========
 
-The Ceph RADOS Gateway makes use of a multiverse package,
-libapache2-mod-fastcgi.   As such it will try to automatically enable the
-multiverse pocket in /etc/apt/sources.list.  Note that there is noting
-'wrong' with multiverse components - they typically have less liberal
-licensing policies or suchlike.
+The Ceph RADOS Gateway makes use of a multiverse package libapache2-mod-fastcgi.
+As such it will try to automatically enable the multiverse pocket in
+/etc/apt/sources.list.  Note that there is noting 'wrong' with multiverse
+components - they typically have less liberal licensing policies or suchlike.

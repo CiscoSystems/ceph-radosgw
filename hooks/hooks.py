@@ -22,6 +22,9 @@ def install_www_scripts():
         shutil.copy(x, '/var/www/')
 
 
+NSS_DIR='/var/lib/ceph/nss'
+
+
 def install():
     utils.juju_log('INFO', 'Begin install hook.')
     utils.enable_pocket('multiverse')
@@ -30,6 +33,7 @@ def install():
                   'libapache2-mod-fastcgi',
                   'apache2',
                   'ntp')
+    os.makedirs(NSS_DIR)
     utils.juju_log('INFO', 'End install hook.')
 
 
@@ -41,8 +45,17 @@ def emit_cephconf():
     cephcontext = {
         'auth_supported': get_auth() or 'none',
         'mon_hosts': ' '.join(get_mon_hosts()),
-        'hostname': utils.get_unit_hostname()
+        'hostname': utils.get_unit_hostname(),
+        'version': ceph.get_ceph_version('radosgw')
         }
+    
+    # Check to ensure that correct version of ceph is 
+    # in use
+    if ceph.get_ceph_version('radosgw') >= "0.55":    
+        # Add keystone configuration if found
+        ks_conf = get_keystone_conf()
+        if ks_conf:
+            cephcontext.update(ks_conf)
 
     with open('/etc/ceph/ceph.conf', 'w') as cephconf:
         cephconf.write(utils.render_template('ceph.conf', cephcontext))
@@ -108,8 +121,25 @@ def get_conf(name):
         for unit in utils.relation_list(relid):
             conf = utils.relation_get(name,
                                       unit, relid)
-            if conf != "":
+            if conf:
                 return conf
+    return None
+
+def get_keystone_conf():
+    for relid in utils.relation_ids('identity-service'):
+        for unit in utils.relation_list(relid):
+            ks_auth = {
+                'auth_type': 'keystone',
+                'auth_protocol': 'http',
+                'auth_host': utils.relation_get('auth_host', unit, relid),
+                'auth_port': utils.relation_get('auth_port', unit, relid),
+                'admin_token': utils.relation_get('admin_token', unit, relid),
+                'user_roles': utils.config_get('operator-roles'),
+                'cache_size': utils.config_get('cache-size'),
+                'revocation_check_interval': utils.config_get('revocation-check-interval')
+            }
+            if None not in ks_auth.itervalues():
+                return ks_auth
     return None
 
 
@@ -117,7 +147,7 @@ def mon_relation():
     utils.juju_log('INFO', 'Begin mon-relation hook.')
     emit_cephconf()
     key = utils.relation_get('radosgw_key')
-    if key != "":
+    if key:
         ceph.import_radosgw_key(key)
         restart()  # TODO figure out a better way todo this
     utils.juju_log('INFO', 'End mon-relation hook.')
@@ -141,13 +171,35 @@ def start():
 
 
 def stop():
-    subprocess.call(['service', 'radosgw', 'start'])
+    subprocess.call(['service', 'radosgw', 'stop'])
     utils.expose(port=80)
 
 
 def restart():
     subprocess.call(['service', 'radosgw', 'restart'])
     utils.expose(port=80)
+
+
+def identity_joined(relid=None):
+    if ceph.get_ceph_version('radosgw') < "0.55":
+        utils.juju_log('ERROR',
+                       'Integration with keystone requires ceph >= 0.55')
+        sys.exit(1)
+
+    hostname = utils.unit_get('private-address')
+    admin_url = 'http://{}:80/swift'.format(hostname)
+    internal_url = public_url = '{}/v1'.format(admin_url)
+    utils.relation_set(service='swift',
+                       region=utils.config_get('region'),
+                       public_url=public_url, internal_url=internal_url,
+                       admin_url=admin_url,
+                       requested_roles=utils.config_get('operator-roles'),
+                       rid=relid)
+
+
+def identity_changed():
+    emit_cephconf()
+    restart() 
 
 
 utils.do_hooks({
@@ -157,6 +209,8 @@ utils.do_hooks({
         'mon-relation-changed': mon_relation,
         'gateway-relation-joined': gateway_relation,
         'upgrade-charm': config_changed,  # same function ATM
+        'identity-service-relation-joined': identity_joined,
+        'identity-service-relation-changed': identity_changed
         })
 
 sys.exit(0)
