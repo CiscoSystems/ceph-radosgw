@@ -2,17 +2,15 @@ Overview
 ========
 
 Ceph is a distributed storage and network file system designed to provide
-excellent performance, reliability, and scalability.
+excellent performance, reliability and scalability.
 
 This charm deploys the RADOS Gateway, a S3 and Swift compatible HTTP gateway
 for online object storage on-top of a ceph cluster.
 
-This charm only supports the S3 gateway at this point in time.
-
 Usage
 =====
 
-In order to use this charm, it assumed that you have already deployed a ceph
+In order to use this charm, it is assumed that you have already deployed a ceph
 storage cluster using the 'ceph' charm with something like this::
 
    juju deploy -n 3 --config ceph.yaml ceph
@@ -38,7 +36,7 @@ ceph charm to generate some access credentials::
    juju ssh ceph/0 \
       'sudo radosgw-admin user create --uid="ubuntu" --display-name="Ubuntu Ceph"'
 
-For security reasons the ceph-radosgw charm is not setup with appropriate
+For security reasons the ceph-radosgw charm is not set up with appropriate
 permissions to administer the ceph cluster.
 
 Keystone Integration
