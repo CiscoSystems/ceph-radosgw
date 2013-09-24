@@ -170,10 +170,10 @@ def relation_set(**kwargs):
         ]
     args = []
     for k, v in kwargs.items():
-        if k == 'rid':
+        if k == 'rid' and v:
             cmd.append('-r')
             cmd.append(v)
-        else:
+        elif k != 'rid':
             args.append('{}={}'.format(k, v))
     cmd += args
     subprocess.check_call(cmd)
